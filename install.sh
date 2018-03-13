@@ -99,73 +99,105 @@ append_bashrc_to_source_bash_aliases () {
     echo "Appended sourcing of '$HOME/.bash_aliases' to '$HOME/.bashrc'"
 }
 
+append_files_to_source_in_bashrc () {
+    # file_abs_path has to be space separated string
+    file_abs_path=$1
+    conditional_f_name=$2
+
+    IFS="," read -r -a result <<< "$file_abs_path"; unset IFS
+
+    echo '' >> "$HOME/.bashrc"
+
+    [ -z "$conditional_f_name" ] &&
+    echo "if [ -f ~/$conditional_f_name ]; then" >> "$HOME/.bashrc"
+    for f in "${result[@]}"; do
+        echo "    . $f" >> "$HOME/.bashrc"
+    done
+
+    [ -z "$conditional_f_name" ] &&
+    echo "fi"
+}
+
+append_lines_to_bashrc () {
+    lines=$1
+    IFS="," read -r -a result <<< "$lines"; unset IFS
+    echo "lines appended:"
+    for line in "${result[@]}"; do
+        echo "    $line"
+        echo "$line" >> "$HOME/.bashrc"
+    done
+}
 
 
-if [ -z "$(which virtualenv)" ]; then
-    echo "Seems like you do not have 'virtualenv' installed." 1>&2
-    echo "use 'sudo apt-get install virtualenv'"
-    exit 1
-fi
+append_lines_to_bashrc "export ANDREJ='hello world',export QAW='fuck'"
 
-if [ ! -f "$HOME/.bashrc" ]; then
-    echo "Cannot find '.bashrc' file in your HOME directory." 1>&2
-    exit 1
-fi
-
-if [ -z "$HOME" ]; then
-    echo "Your HOME variable is not defined." 1>&2
-    exit 1
-fi
-
-if [ -n "$CUSTOM_BASE_DIR_NAME" ]; then
-    if [ -d "$HOME/$CUSTOM_BASE_DIR_NAME" ]; then
-        echo "Directory $HOME/$CUSTOM_BASE_DIR_NAME already exists." 1>&2
-        exit 1
-    else
-        BASE_DIR="$HOME/$CUSTOM_BASE_DIR_NAME"
-    fi
-else
-    if [ -d "$HOME/wenvs" ]; then
-        echo "Directory $HOME/wenvs already exists." 1>&2
-        exit 1
-    else
-        BASE_DIR="$HOME/$DEFAULT_BASE_DIR_NAME"
-    fi
-
-    make_base_dir "$BASE_DIR"
-fi
-
-#echo
-#echo "no aliases $NO_ALIASES"
-#echo "alias name $CUSTOM_ALIAS_NAME"
-#echo "base dir $CUSTOM_BASE_DIR_NAME"
-#echo
-
-if [[ "$NO_ALIASES" == "true" ]]; then
-    echo "No aliases were created"
-else
-
-    if file_exists "$HOME/.bash_aliases"; then
-        :
-    else
-        echo "Cannot find '.bash_aliases' file in your HOME directory."
-        touch_file "$HOME/.bash_aliases"
-    fi
-
-    if [ -z "$CUSTOM_ALIAS_NAME" ]; then
-        append_bash_aliases "$DEFAULT_ALIAS_NAME"
-        echo "Aliased 'virtualenv' with '$DEFAULT_ALIAS_NAME'"
-    else
-        ALIAS_NAME="$DEFAULT_ALIAS_NAME"
-        append_bash_aliases "$ALIAS_NAME"
-        echo "Aliased 'virtualenv' with $ALIAS_NAME"
-    fi
-
-    if is_bash_aliases_sourced_in_bashrc; then
-        :
-    else
-        append_bashrc_to_source_bash_aliases
-    fi
-fi
+#
+#
+#if [ -z "$(which virtualenv)" ]; then
+#    echo "Seems like you do not have 'virtualenv' installed." 1>&2
+#    echo "use 'sudo apt-get install virtualenv'"
+#    exit 1
+#fi
+#
+#if [ ! -f "$HOME/.bashrc" ]; then
+#    echo "Cannot find '.bashrc' file in your HOME directory." 1>&2
+#    exit 1
+#fi
+#
+#if [ -z "$HOME" ]; then
+#    echo "Your HOME variable is not defined." 1>&2
+#    exit 1
+#fi
+#
+#if [ -n "$CUSTOM_BASE_DIR_NAME" ]; then
+#    if [ -d "$HOME/$CUSTOM_BASE_DIR_NAME" ]; then
+#        echo "Directory $HOME/$CUSTOM_BASE_DIR_NAME already exists." 1>&2
+#        exit 1
+#    else
+#        BASE_DIR="$HOME/$CUSTOM_BASE_DIR_NAME"
+#    fi
+#else
+#    if [ -d "$HOME/wenvs" ]; then
+#        echo "Directory $HOME/wenvs already exists." 1>&2
+#        exit 1
+#    else
+#        BASE_DIR="$HOME/$DEFAULT_BASE_DIR_NAME"
+#    fi
+#
+#    make_base_dir "$BASE_DIR"
+#fi
+#
+##echo
+##echo "no aliases $NO_ALIASES"
+##echo "alias name $CUSTOM_ALIAS_NAME"
+##echo "base dir $CUSTOM_BASE_DIR_NAME"
+##echo
+#
+#if [[ "$NO_ALIASES" == "true" ]]; then
+#    echo "No aliases were created"
+#else
+#
+#    if file_exists "$HOME/.bash_aliases"; then
+#        :
+#    else
+#        echo "Cannot find '.bash_aliases' file in your HOME directory."
+#        touch_file "$HOME/.bash_aliases"
+#    fi
+#
+#    if [ -z "$CUSTOM_ALIAS_NAME" ]; then
+#        append_bash_aliases "$DEFAULT_ALIAS_NAME"
+#        echo "Aliased 'virtualenv' with '$DEFAULT_ALIAS_NAME'"
+#    else
+#        ALIAS_NAME="$DEFAULT_ALIAS_NAME"
+#        append_bash_aliases "$ALIAS_NAME"
+#        echo "Aliased 'virtualenv' with $ALIAS_NAME"
+#    fi
+#
+#    if is_bash_aliases_sourced_in_bashrc; then
+#        :
+#    else
+#        append_bashrc_to_source_bash_aliases
+#    fi
+#fi
 
 
