@@ -10,42 +10,40 @@
 # $2 is whether you want to create an alias in bash_aliases from virtualenv
 # to wenv or any other name orvided as other parameter
 
-DEFAULT_BASE_DIR_NAME="wenvs"
-DEFAULT_ALIAS_NAME="wenv"
-LOG_FILE_NAME="wenv.log"
-NO_ALIASES="false"
+source default_conf.sh
+
+NO_ALIASES="$NO_ALIASES"
 
 CUSTOM_ALIAS_NAME=""
 CUSTOM_BASE_DIR_NAME=""
 
-while [[ $# -gt 0 ]]
-do
-key="$1"
+while [[ $# -gt 0 ]]; do
+    key="$1"
 
-case "$key" in
-    -b|--base_dir)
-    CUSTOM_BASE_DIR_NAME="$2"
-    shift # past argument
-    shift # past value
-    ;;
-    -l|--alias_name)
-    CUSTOM_ALIAS_NAME="$2"
-    shift # past argument
-    shift # past value
-    ;;
-    --no_aliases)
-    NO_ALIASES="true"
-    shift
-    ;;
-    *)
-    shift
-    shift
-    ;;
-esac
+    case "$key" in
+        -b|--base_dir)
+        CUSTOM_BASE_DIR_NAME="$2"
+        shift # past argument
+        shift # past value
+        ;;
+        -l|--alias_name)
+        CUSTOM_ALIAS_NAME="$2"
+        shift # past argument
+        shift # past value
+        ;;
+        --no_aliases)
+        NO_ALIASES="true"
+        shift
+        ;;
+        *)
+        shift
+        shift
+        ;;
+    esac
 done
 
 BASE_DIR=""
-ALIAS_NAME=""
+ALIAS=""
 
 
 make_log_file () {
@@ -124,12 +122,15 @@ append_files_to_source_in_bashrc () {
 }
 
 
-
+touch_file "$USER_CONFIG_FILE"
+echo '#!/usr/bin/env bash' >> "$USER_CONFIG_FILE"
 
 if [ -z "$(which virtualenv)" ]; then
     echo "Seems like you do not have 'virtualenv' installed." 1>&2
     echo "use 'sudo apt-get install virtualenv'"
     exit 1
+else
+    echo "USER_VIRTUALENV_LOCATION=$(which virtualenv)" >> "$USER_CONFIG_FILE"
 fi
 
 if [ ! -f "$HOME/.bashrc" ]; then
@@ -148,28 +149,24 @@ if [ -n "$CUSTOM_BASE_DIR_NAME" ]; then
         exit 1
     else
         BASE_DIR="$HOME/$CUSTOM_BASE_DIR_NAME"
+        echo "BASE_DIR_NAME=$BASE_DIR" >> "$USER_CONFIG_FILE"
     fi
 else
     if [ -d "$HOME/wenvs" ]; then
         echo "Directory $HOME/wenvs already exists." 1>&2
         exit 1
     else
-        BASE_DIR="$HOME/$DEFAULT_BASE_DIR_NAME"
+        BASE_DIR="$HOME/$BASE_DIR_NAME"
+        echo "BASE_DIR_NAME=$BASE_DIR" >> "$USER_CONFIG_FILE"
     fi
 
     make_base_dir "$BASE_DIR"
 fi
 
-#echo
-#echo "no aliases $NO_ALIASES"
-#echo "alias name $CUSTOM_ALIAS_NAME"
-#echo "base dir $CUSTOM_BASE_DIR_NAME"
-#echo
-
 if [[ "$NO_ALIASES" == "true" ]]; then
     echo "Skipped creation of aliases."
+    echo "NO_ALIASES=true" >> "$USER_CONFIG_FILE"
 else
-
     if file_exists "$HOME/.bash_aliases"; then
         :
     else
@@ -178,12 +175,15 @@ else
     fi
 
     if [ -z "$CUSTOM_ALIAS_NAME" ]; then
-        append_bash_aliases "$DEFAULT_ALIAS_NAME"
-        echo "Aliased 'virtualenv' with '$DEFAULT_ALIAS_NAME'"
-    else
-        ALIAS_NAME="$DEFAULT_ALIAS_NAME"
         append_bash_aliases "$ALIAS_NAME"
-        echo "Aliased 'virtualenv' with $ALIAS_NAME"
+        echo "Aliased 'virtualenv' with '$ALIAS_NAME'"
+        echo "ALIAS_NAME=$ALIAS_NAME" >> "$USER_CONFIG_FILE"
+        echo $?
+    else
+        ALIAS="$CUSTOM_ALIAS_NAME"
+        append_bash_aliases "$ALIAS"
+        echo "Aliased 'virtualenv' with $ALIAS"
+        echo "ALIAS_NAME=$ALIAS" >> "$USER_CONFIG_FILE"
     fi
 
     if is_bash_aliases_sourced_in_bashrc; then
