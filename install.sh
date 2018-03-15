@@ -174,6 +174,9 @@ else
     make_base_dir "$BASE_DIR"
 fi
 
+#===============================================================================
+#===============================================================================
+
 if [[ "$NO_ALIASES" == "true" ]]; then
     echo "Skipped creation of aliases."
     user_conf[2]="NO_ALIASES=true"
@@ -207,8 +210,8 @@ else
 fi
 
 
-#user_conf=( "USER_CONFIG_FILE=user_conf.sh" "USER_CONFIG_FILE=user_conf.sh" "USER_CONFIG_FILE=user_conf.sh" )
-#USER_CONFIG_FILE="user_conf.sh"
+user_conf=( "USER_CONFIG_FILE=user_conf.sh" "USER_CONFIG_FILE=user_conf.sh" "USER_CONFIG_FILE=user_conf.sh" )
+USER_CONFIG_FILE="user_conf.sh"
 echo "${user_conf[@]}"
 for i in "${user_conf[@]}"; do
     echo "$i" >> "$USER_CONFIG_FILE"
