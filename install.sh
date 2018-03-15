@@ -121,16 +121,25 @@ append_files_to_source_in_bashrc () {
     echo "Conditional closed."
 }
 
+make_user_config () {
+    for i in "$@"; do
+        echo "$i" >> "$USER_CONFIG_FILE"
+    done
+    echo "User config file initiated."
+}
+
 
 touch_file "$USER_CONFIG_FILE"
-echo '#!/usr/bin/env bash' >> "$USER_CONFIG_FILE"
+#echo '#!/usr/bin/env bash' >> "$USER_CONFIG_FILE"
+declare -a user_conf
 
 if [ -z "$(which virtualenv)" ]; then
     echo "Seems like you do not have 'virtualenv' installed." 1>&2
     echo "use 'sudo apt-get install virtualenv'"
     exit 1
 else
-    echo "USER_VIRTUALENV_LOCATION=$(which virtualenv)" >> "$USER_CONFIG_FILE"
+    user_conf[0]="USER_VIRTUALENV_LOCATION=$(which virtualenv)"
+#    echo "USER_VIRTUALENV_LOCATION=$(which virtualenv)" >> "$USER_CONFIG_FILE"
 fi
 
 if [ ! -f "$HOME/.bashrc" ]; then
@@ -149,7 +158,7 @@ if [ -n "$CUSTOM_BASE_DIR_NAME" ]; then
         exit 1
     else
         BASE_DIR="$HOME/$CUSTOM_BASE_DIR_NAME"
-        echo "BASE_DIR_NAME=$BASE_DIR" >> "$USER_CONFIG_FILE"
+#        echo "BASE_DIR_NAME=$BASE_DIR" >> "$USER_CONFIG_FILE"
     fi
 else
     if [ -d "$HOME/wenvs" ]; then
@@ -157,15 +166,18 @@ else
         exit 1
     else
         BASE_DIR="$HOME/$BASE_DIR_NAME"
-        echo "BASE_DIR_NAME=$BASE_DIR" >> "$USER_CONFIG_FILE"
+
+#        echo "BASE_DIR_NAME=$BASE_DIR" >> "$USER_CONFIG_FILE"
     fi
 
+    user_conf[1]="BASE_DIR_NAME=$BASE_DIR"
     make_base_dir "$BASE_DIR"
 fi
 
 if [[ "$NO_ALIASES" == "true" ]]; then
     echo "Skipped creation of aliases."
-    echo "NO_ALIASES=true" >> "$USER_CONFIG_FILE"
+    user_conf[2]="NO_ALIASES=true"
+#    echo "NO_ALIASES=true" >> "$USER_CONFIG_FILE"
 else
     if file_exists "$HOME/.bash_aliases"; then
         :
@@ -177,13 +189,14 @@ else
     if [ -z "$CUSTOM_ALIAS_NAME" ]; then
         append_bash_aliases "$ALIAS_NAME"
         echo "Aliased 'virtualenv' with '$ALIAS_NAME'"
-        echo "ALIAS_NAME=$ALIAS_NAME" >> "$USER_CONFIG_FILE"
-        echo $?
+        user_conf[2]="ALIAS_NAME=$ALIAS_NAME"
+#        echo "ALIAS_NAME=$ALIAS_NAME" >> "$USER_CONFIG_FILE"
     else
         ALIAS="$CUSTOM_ALIAS_NAME"
         append_bash_aliases "$ALIAS"
         echo "Aliased 'virtualenv' with $ALIAS"
-        echo "ALIAS_NAME=$ALIAS" >> "$USER_CONFIG_FILE"
+        user_conf[2]="ALIAS_NAME=$ALIAS"
+#        echo "ALIAS_NAME=$ALIAS" >> "$USER_CONFIG_FILE"
     fi
 
     if is_bash_aliases_sourced_in_bashrc; then
@@ -192,5 +205,14 @@ else
         append_files_to_source_in_bashrc ". $HOME/.bash_aliases" ".bash_aliases"
     fi
 fi
+
+
+#user_conf=( "USER_CONFIG_FILE=user_conf.sh" "USER_CONFIG_FILE=user_conf.sh" "USER_CONFIG_FILE=user_conf.sh" )
+#USER_CONFIG_FILE="user_conf.sh"
+echo "${user_conf[@]}"
+for i in "${user_conf[@]}"; do
+    echo "$i" >> "$USER_CONFIG_FILE"
+done
+echo "User config file initiated."
 
 
