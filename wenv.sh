@@ -5,12 +5,23 @@ source $HOME/.wenv/user_conf.sh
 
 
 wenv_install () {
-    :
+    to_install=($@)
+    if [ -z "$VIRTUAL_ENV" ]; then
+        echo "Not in virtualenv. quiting"
+    else
+        for i in "${to_install[@]}"; do
+            "$VIRTUAL_ENV/bin/pip" install "$i" &&
+            echo "$i" >> "$VIRTUAL_ENV/requirements.txt"
+        done
+    fi
 }
 
 
 wenv_purge () {
-    :
+    rm -rf "$VIRTUAL_ENV" &&
+    wenv_log "$VIRTUAL_ENV    deleted"
+    echo "Deleted $VIRTUAL_ENV"
+    deactivate
 }
 
 
@@ -25,14 +36,10 @@ wenv_make () {
         virtualenv "$rest_args" "$BASE_DIR_LOCATION/$name" &&
         . "$BASE_DIR_LOCATION/$name/bin/activate"
 	fi
-#	wenv_log "$name    $rest_args    created"
-}
+	wenv_log "$name    $rest_args    created"
 
-
-wenv_deactivate () {
-    echo "deactivate fuck"
-    echo "base dir location $BASE_DIR_LOCATION"
-    echo $?
+	touch "$BASE_DIR_LOCATION/$name/requirements.txt" &&
+	echo "Created empty requirements file $BASE_DIR_LOCATION/$name/requirements.txt"
 }
 
 
@@ -52,7 +59,7 @@ wenv () {
 
     case "$exec_arg" in
         -i|--install|install)
-        echo "install"
+        wenv_install "$rest_args"
         ;;
         -m|--make|make)
         wenv_make "$rest_args"
@@ -61,47 +68,11 @@ wenv () {
         wenv_deactivate
         ;;
         -p|--purge|purge)
-        echo "purge"
+        wenv_purge
         ;;
         *)
         echo "unknown option '$exec_arg'"
         # define help
         ;;
     esac
-
-#	ENVNAME=$1
-#	PYVERSION=$2
-#	LOCATION=$3
-#	ACTIVATE=$4
-#
-#	if [ -z "$ENVNAME" ]; then
-#	    exit 1
-#	fi
-#	if [ -z "$PYVERSION" ]; then
-#	    PYVERSION="python3.6"
-#	fi
-#	if [ -z "$LOCATION" ]; then
-#	    LOCATION="/virtual_envs"
-#	fi
-#	if [ -z "$ACTIVATE" ]; then
-#	    ACTIVATE=true
-#	fi
-#
-#	echo "env name: $ENVNAME"
-#	echo "py version: $PYVERSION"
-#	echo "env location: $LOCATION"
-#	echo "activate: $ACTIVATE"
-#	echo
-#
-#	# basic logging
-#	now=$(date + '%Y-%m-%d %H:%M:%S')
-#	log=`echo -e "$now\t$ENVNAME\t$PYVERSION\t$LOCATION\taoi: $ACTIVATE"`
-#	echo "$log" >> ~/virtual_envs/myenv.log
-#
-#	if [[ "$ACTIVATE" == true ]]; then
-#		virtualenv "$HOME/$LOCATION/$ENVNAME" --python="$PYVERSION" &&
-#		. "$HOME/$LOCATION/$ENVNAME/bin/activate"
-#	else
-#	    virtualenv "$HOME/$LOCATION/$ENVNAME" --python="$PYVERSION"
-#	fi
 }
