@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-source default_conf.sh
+source $HOME/.wenv/default_conf.sh
+source $HOME/.wenv/user_conf.sh
+
 
 wenv_install () {
     :
@@ -14,27 +16,31 @@ wenv_purge () {
 
 wenv_make () {
     all_args=($@)
-
     name="${all_args[0]}"
-    echo "$name"
     rest_args="${all_args[@]:1}"
-    echo "$rest_args"
-    echo "$BASE_DIR_LOCATION/$name"
-    virtualenv "$BASE_DIR_LOCATION/$name" "$rest_args" &&
-	. "$BASE_DIR_LOCATION/$name/bin/activate"
+    if [ -z "$rest_args" ]; then
+        virtualenv "$BASE_DIR_LOCATION/$name" &&
+        . "$BASE_DIR_LOCATION/$name/bin/activate"
+    else
+        virtualenv "$rest_args" "$BASE_DIR_LOCATION/$name" &&
+        . "$BASE_DIR_LOCATION/$name/bin/activate"
+	fi
+#	wenv_log "$name    $rest_args    created"
 }
 
 
 wenv_deactivate () {
-    :
+    echo "deactivate fuck"
+    echo "base dir location $BASE_DIR_LOCATION"
+    echo $?
 }
 
 
 wenv_log () {
     message=$1
-	now=$(date + '%Y-%m-%d %H:%M:%S')
+	now=$(date +'%Y-%m-%d %H:%M:%S')
 	log=`echo -e "$now\t$message"`
-	echo "$log" >> "$LOG_FILE_LOCATION"
+	echo "$log" >> "$HOME/.wenv/$LOG_FILE_NAME"
 }
 
 
@@ -44,27 +50,22 @@ wenv () {
     exec_arg="${all_args[0]}"
     rest_args="${all_args[@]:1}"
 
-#    echo "$exec_arg"
-#    echo "$rest_args"
-#    echo
-#
     case "$exec_arg" in
         -i|--install|install)
         echo "install"
         ;;
         -m|--make|make)
-        echo "make"
         wenv_make "$rest_args"
         ;;
         -d|--deactivate|deactivate)
-        echo "deactivate"
+        wenv_deactivate
         ;;
         -p|--purge|purge)
         echo "purge"
         ;;
         *)
         echo "unknown option '$exec_arg'"
-        help # define it
+        # define help
         ;;
     esac
 
@@ -104,5 +105,3 @@ wenv () {
 #	    virtualenv "$HOME/$LOCATION/$ENVNAME" --python="$PYVERSION"
 #	fi
 }
-
-wenv make venv --python=python
