@@ -25,27 +25,29 @@ while [[ $# -gt 0 ]]; do
     case "$key" in
         -b|--base_dir)
         CUSTOM_BASE_DIR_NAME="$2"
-        shift # past argument
-        shift # past value
+        shift
+        shift
         ;;
         -l|--alias_name)
         CUSTOM_ALIAS_NAME="$2"
-        shift # past argument
-        shift # past value
-        ;;
-        --no_aliases)
-        NO_ALIASES="true"
+        NO_ALIASES="false"
+        shift
         shift
         ;;
         *)
-        shift
-        shift
+        echo "unknown option '$key'" 1>&2
+        echo
         ;;
     esac
 done
 
 BASE_DIR=""
 ALIAS=""
+
+
+[ -n "$(which "$CUSTOM_ALIAS_NAME")" ] &&
+echo "$CUSTOM_ALIAS_NAME already in use. Choose different alias name." &&
+exit 1
 
 
 make_log_file () {
@@ -63,7 +65,7 @@ make_base_dir () {
 
 append_bash_aliases () {
     alias_name=$1
-    echo "alias virtualenv='$alias_name make'" >> "$HOME/.bash_aliases"
+    echo "alias $alias_name='wenw'" >> "$HOME/.bash_aliases"
 }
 
 
@@ -101,6 +103,7 @@ append_files_to_source_in_bashrc () {
     [ -n "$conditional_f_name" ] &&
     echo "fi" >> "$HOME/.bashrc" &&
     echo "Conditional closed."
+    return 0
 }
 
 
@@ -141,6 +144,7 @@ copy_data_to_hidden () {
     copy_configs_to_hidden_dir
     copy_main_to_hidden
     copy_installs_to_hidden
+    return 0
 }
 
 
@@ -182,11 +186,10 @@ else
     else
         BASE_DIR="$HOME/$BASE_DIR_NAME"
     fi
-
-    user_conf[1]="BASE_DIR_LOCATION=$BASE_DIR"
-    make_base_dir "$BASE_DIR"
 fi
 
+user_conf[1]="BASE_DIR_LOCATION=$BASE_DIR"
+make_base_dir "$BASE_DIR"
 
 if [[ "$NO_ALIASES" == "true" ]]; then
     echo "Skipped creation of aliases."
@@ -201,12 +204,12 @@ else
 
     if [ -z "$CUSTOM_ALIAS_NAME" ]; then
         append_bash_aliases "$ALIAS_NAME"
-        echo "Aliased 'virtualenv' with '$ALIAS_NAME'"
+        echo "Aliased 'wenw' with '$ALIAS_NAME'"
         user_conf[2]="ALIAS_NAME=$ALIAS_NAME"
     else
         ALIAS="$CUSTOM_ALIAS_NAME"
         append_bash_aliases "$ALIAS"
-        echo "Aliased 'virtualenv' with $ALIAS"
+        echo "Aliased 'wenw' with $ALIAS"
         user_conf[2]="ALIAS_NAME=$ALIAS"
     fi
 
@@ -220,3 +223,5 @@ fi
 make_user_config "${user_conf[@]}"
 copy_data_to_hidden
 append_files_to_source_in_bashrc ".    $HOME/$HIDDEN_DIR_NAME/wenw.sh"
+echo "Installation done."
+echo "run '. .bashrc' to apply changes to current shell"

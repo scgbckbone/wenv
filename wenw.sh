@@ -11,7 +11,7 @@ source "$HOME/.wenw/default_conf.sh"
 source "$HOME/.wenw/user_conf.sh"
 
 
-wenv_active_environment () {
+wenw_active_environment () {
     if [ -z "$VIRTUAL_ENV" ]; then
         return 1
     else
@@ -20,46 +20,81 @@ wenv_active_environment () {
 }
 
 
-wenv_install () {
-    to_install=($@)
-    if ! wenv_active_environment; then
-        echo "Not in virtualenv. quiting"
-        exit 1
-    else
-        for i in "${to_install[@]}"; do
-            "$VIRTUAL_ENV/bin/pip" install "$i" &&
-            echo "$i" >> "$VIRTUAL_ENV/requirements.txt"
-        done
-    fi
+is_element_in_array () {
+    element=$1
+    shift
+    array=( $@ )
+
+    for i in "${array[@]}"; do
+        if [[ "$element" == "$i" ]]; then
+            return 0
+        fi
+    done
+    return 1
 }
 
 
-wenv_active_sys_real_prefix () {
+wenw_install () {
+    to_install=($@)
+    if ! wenw_active_environment; then
+        echo "Not in virtualenv. quiting"
+        exit 1
+    fi
+
+    readarray -t included < "$VIRTUAL_ENV/requirements.txt"
+
+    for x in "${to_install[@]}"; do
+        "$VIRTUAL_ENV/bin/pip" install "$x" &&
+        if is_element_in_array "$x" "${included[@]}"; then
+            continue
+        fi
+        echo "$x" >> "$VIRTUAL_ENV/requirements.txt"
+    done
+}
+
+
+wenw_uninstall () {
+# naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaah
+    to_uninstall=($@)
+    if ! wenw_active_environment; then
+        echo "Not in virtualenv. quiting"
+        exit 1
+    fi
+
+    cp "$VIRTUAL_ENV/requirements.txt" "$VIRTUAL_ENV/reqs_tmp.txt" &&
+    for x in "${to_install[@]}"; do
+        "$VIRTUAL_ENV/bin/pip" uninstall "$x" &&
+        grep -vwi "$x" "$VIRTUAL_ENV/reqs_tmp.txt" > "$VIRTUAL_ENV/requirements.txt"
+    done
+}
+
+
+wenw_active_sys_real_prefix () {
     python "$HOME/$HIDDEN_DIR_NAME/venv_active.py"
     return $?
 }
 
 
-wenv_versioned_requirements () {
+wenw_versioned_requirements () {
     option="$(trim $1)"
 
     [[ "$option" == "write" ]] &&
     rm -f "$VIRTUAL_ENV/versioned_requirements.txt"
 
-    if ! wenv_active_environment; then
+    if ! wenw_active_environment; then
         echo "Not in virtualenv. quiting"
         exit 1
     fi
     pip_freeze=$("$VIRTUAL_ENV/bin/pip" freeze)
     while read -u 10 p; do
-        res=$(echo "$pip_freeze" | grep "$p")
+        res=$(echo "$pip_freeze" | grep -i "$p")
         if [ -z "$res" ]; then
-            continue
+            continueq
         fi
         [[ "$option" == "write" ]] &&
         echo "$res" >> "$VIRTUAL_ENV/versioned_requirements.txt"
 
-        [ "$option" -ne "write" ] &&
+        [[ "$option" == "write" ]] ||
         echo "$res"
 
     done 10<"$VIRTUAL_ENV/requirements.txt"
@@ -69,20 +104,20 @@ wenv_versioned_requirements () {
 }
 
 
-wenv_requirements_echo () {
+wenw_requirements_echo () {
     cat "$VIRTUAL_ENV/requirements.txt"
 }
 
 
-wenv_purge () {
+wenw_purge () {
     rm -rf "$VIRTUAL_ENV" &&
-    wenv_log "$VIRTUAL_ENV    deleted"
+    wenw_log "$VIRTUAL_ENV    deleted"
     echo "Deleted $VIRTUAL_ENV"
     deactivate
 }
 
 
-wenv_make () {
+wenw_make () {
     all_args=($@)
     name="${all_args[0]}"
     rest_args="${all_args[@]:1}"
@@ -93,20 +128,20 @@ wenv_make () {
         virtualenv "$rest_args" "$BASE_DIR_LOCATION/$name" &&
         . "$BASE_DIR_LOCATION/$name/bin/activate"
 	fi
-	wenv_log "$name    $rest_args    created"
+	wenw_log "$name    $rest_args    created"
 
 	touch "$BASE_DIR_LOCATION/$name/requirements.txt" &&
 	echo "Created empty requirements file $BASE_DIR_LOCATION/$name/requirements.txt"
 }
 
 
-wenv_activate () {
+wenw_activate () {
     name=$1
     . "$BASE_DIR_LOCATION/$name/bin/activate"
 }
 
 
-wenv_log () {
+wenw_log () {
     message=$1
 	now=$(date +'%Y-%m-%d %H:%M:%S')
 	log=`echo -e "$now\t$message"`
@@ -114,7 +149,7 @@ wenv_log () {
 }
 
 
-wenv_help () {
+wenw_help () {
     echo "Usage: wenw [exec option] [args]"
     echo "wenw $WENW_VERSION"
     echo
@@ -126,16 +161,18 @@ wenv_help () {
     echo "   - writes clean requirements file with only those dependencies"
     echo "     that you actually installed (like pip freeze but lists only "
     echo "     the packages that are not dependencies of installed packages)"
-    echo "   - logs creation and deletion of virtual envs created with wenv"
+    echo "   - logs creation and deletion of virtual envs created with wenw"
     echo
     echo "Exec options:"
     echo "   -a, --activate, activate   Activates venv just by its name."
     echo "   -m, --make, make           Creates venv and activate it."
     echo "   -i, --install, install     Uses pip in activated venv and installs."
-    echo "   -l, --log, log             Log whatever to '~/.wenv/wenv.log."
+    echo "   -l, --log, log             Log whatever to '~/.wenw/wenw.log."
     echo "   -p, --purge, purge         Deletes and deactivated currently active venv."
+    echo "   reqs                       Display venv requirements."
+    echo "   vreqs                      Display venv requirements with versions."
     echo
-    echo "README: www.github.com/"
+    echo "README: https://github.com/scgbckbone/wenw/blob/master/README.md"
     return 0
 }
 
@@ -148,36 +185,36 @@ wenw () {
 
     case "$exec_arg" in
         -a|--activate|activate)
-        wenv_activate "$rest_args"
+        wenw_activate "$rest_args"
         ;;
         -i|--install|install)
-        wenv_install "$rest_args"
+        wenw_install "$rest_args"
         ;;
         -m|--make|make)
-        wenv_make "$rest_args"
+        wenw_make "$rest_args"
         ;;
         -l|--log|log)
-        wenv_log "$rest_args"
+        wenw_log "$rest_args"
         ;;
         -p|--purge|purge)
-        wenv_purge
+        wenw_purge
         ;;
         -h|--help|help)
-        wenv_help
+        wenw_help
         ;;
         -v|--version|version)
         echo "wenw $WENW_VERSION"
         ;;
-        -r|req)
-        wenv_requirements_echo
+        -r|reqs)
+        wenw_requirements_echo
         ;;
-        -vr|vreq)
-        wenv_versioned_requirements "$rest_args"
+        -vr|vreqs)
+        wenw_versioned_requirements "$rest_args"
         ;;
         *)
         echo "unknown option '$exec_arg'" 1>&2
         echo
-        wenv_help
+        wenw_help
         ;;
     esac
 }
