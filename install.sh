@@ -12,6 +12,7 @@
 
 set -e
 source default_conf.sh
+source helpers.sh
 
 NO_ALIASES="$NO_ALIASES"
 
@@ -48,8 +49,8 @@ ALIAS=""
 
 
 make_log_file () {
-    touch "$HOME/.wenv/$LOG_FILE_NAME" &&
-    echo "Log file created: $HOME/.wenv/$LOG_FILE_NAME"
+    touch "$HOME/$HIDDEN_DIR_NAME/$LOG_FILE_NAME" &&
+    echo "Log file created: $HOME/$HIDDEN_DIR_NAME/$LOG_FILE_NAME"
 }
 
 
@@ -57,23 +58,6 @@ make_base_dir () {
     base_dir=$1
     mkdir "$base_dir" &&
     echo "Base directory created: $base_dir"
-}
-
-
-file_exists () {
-    FILE=$1
-    if [ -f "$1" ]; then
-        return 0
-    else
-        return 1
-    fi
-}
-
-
-touch_file () {
-    FILE=$1
-    touch "$FILE" &&
-    echo "File '$FILE created."
 }
 
 
@@ -129,25 +113,27 @@ make_user_config () {
 
 
 make_hidden_config_dir () {
-    mkdir "$HOME/.wenv" &&
-    echo "Created hidden config directory "$HOME/.wenv""
+    mkdir "$HOME/$HIDDEN_DIR_NAME" &&
+    echo "Created hidden config directory" "$HOME/$HIDDEN_DIR_NAME"
 }
 
 
 copy_configs_to_hidden_dir () {
-    cp -v "$USER_CONFIG_FILE" "$HOME/.wenv/$USER_CONFIG_FILE"
-    cp -v "$DEFAULT_CONFIG_FILE" "$HOME/.wenv/$DEFAULT_CONFIG_FILE"
+    cp -v "$USER_CONFIG_FILE" "$HOME/$HIDDEN_DIR_NAME/$USER_CONFIG_FILE"
+    cp -v "$DEFAULT_CONFIG_FILE" "$HOME/$HIDDEN_DIR_NAME/$DEFAULT_CONFIG_FILE"
 }
 
 
 copy_main_to_hidden () {
-    cp -v "wenv.sh" "$HOME/.wenv/wenv.sh"
+    cp -v "wenw.sh" "$HOME/$HIDDEN_DIR_NAME/wenw.sh"
+    cp -v "venv_active.py" "$HOME/$HIDDEN_DIR_NAME/venv_active.py"
+    cp -v "helpers.sh" "$HOME/$HIDDEN_DIR_NAME/helpers.sh"
 }
 
 
 copy_installs_to_hidden () {
-    cp -v "install.sh" "$HOME/.wenv/install.sh"
-    cp -v "uninstall.sh" "$HOME/.wenv/uninstall.sh"
+    cp -v "install.sh" "$HOME/$HIDDEN_DIR_NAME/install.sh"
+    cp -v "uninstall.sh" "$HOME/$HIDDEN_DIR_NAME/uninstall.sh"
 }
 
 
@@ -172,13 +158,13 @@ else
     user_conf[0]="USER_VIRTUALENV_LOCATION=$(which virtualenv)"
 fi
 
-if [ ! -f "$HOME/.bashrc" ]; then
-    echo "Cannot find '.bashrc' file in your HOME directory." 1>&2
+if [ -z "$HOME" ]; then
+    echo "Your HOME variable is not defined." 1>&2
     exit 1
 fi
 
-if [ -z "$HOME" ]; then
-    echo "Your HOME variable is not defined." 1>&2
+if [ ! -f "$HOME/.bashrc" ]; then
+    echo "Cannot find '.bashrc' file in your HOME directory." 1>&2
     exit 1
 fi
 
@@ -190,8 +176,8 @@ if [ -n "$CUSTOM_BASE_DIR_NAME" ]; then
         BASE_DIR="$HOME/$CUSTOM_BASE_DIR_NAME"
     fi
 else
-    if [ -d "$HOME/wenvs" ]; then
-        echo "Directory $HOME/wenvs already exists." 1>&2
+    if [ -d "$HOME/$BASE_DIR_NAME" ]; then
+        echo "Directory $HOME/$BASE_DIR_NAME already exists." 1>&2
         exit 1
     else
         BASE_DIR="$HOME/$BASE_DIR_NAME"
@@ -233,4 +219,4 @@ fi
 
 make_user_config "${user_conf[@]}"
 copy_data_to_hidden
-append_files_to_source_in_bashrc ".    $HOME/.wenv/wenv.sh"
+append_files_to_source_in_bashrc ".    $HOME/$HIDDEN_DIR_NAME/wenw.sh"
