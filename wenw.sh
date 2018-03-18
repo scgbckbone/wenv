@@ -47,25 +47,25 @@ wenw_install () {
         "$VIRTUAL_ENV/bin/pip" install "$x" &&
         if is_element_in_array "$x" "${included[@]}"; then
             continue
-        fi
+        fi &&
         echo "$x" >> "$VIRTUAL_ENV/requirements.txt"
     done
 }
 
 
 wenw_uninstall () {
-# naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaah
     to_uninstall=($@)
     if ! wenw_active_environment; then
         echo "Not in virtualenv. quiting"
         exit 1
     fi
 
-    cp "$VIRTUAL_ENV/requirements.txt" "$VIRTUAL_ENV/reqs_tmp.txt" &&
-    for x in "${to_install[@]}"; do
+    for x in "${to_uninstall[@]}"; do
         "$VIRTUAL_ENV/bin/pip" uninstall "$x" &&
-        grep -vwi "$x" "$VIRTUAL_ENV/reqs_tmp.txt" > "$VIRTUAL_ENV/requirements.txt"
+        sed -i "/$x/Id" "$VIRTUAL_ENV/requirements.txt"
     done
+
+
 }
 
 
@@ -89,7 +89,7 @@ wenw_versioned_requirements () {
     while read -u 10 p; do
         res=$(echo "$pip_freeze" | grep -i "$p")
         if [ -z "$res" ]; then
-            continueq
+            continue
         fi
         [[ "$option" == "write" ]] &&
         echo "$res" >> "$VIRTUAL_ENV/versioned_requirements.txt"
@@ -189,6 +189,9 @@ wenw () {
         ;;
         -i|--install|install)
         wenw_install "$rest_args"
+        ;;
+        -u|--uninstall|uninstall)
+        wenw_uninstall "$rest_args"
         ;;
         -m|--make|make)
         wenw_make "$rest_args"
